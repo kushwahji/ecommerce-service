@@ -1,0 +1,95 @@
+server:
+    port: 2000
+spring:
+  application:
+    name: ms-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lowerCaseServiceId: true
+      routes:
+      - id: ms-account
+        uri: lb://MS-ACCOUNT
+        predicates:
+          - Path=/api/**
+        filters:
+            - name: CircuitBreaker
+              args:
+                name: backendA
+                statusCodes: 503
+                fallbackUri: forward:/fallback/account
+      - id: ms-fundtransfer
+        uri: lb://MS-FUNDTRANSFER
+        predicates:
+          - Path=/api/** 
+        filters:
+            - name: CircuitBreaker
+              args:
+                name: backendB
+                statusCodes: 503
+                fallbackUri: forward:/fallback/fund
+      - id: ms-product
+        uri: lb://MS-PRODUCT
+        predicates:
+          - Path=/api/** 
+        filters:
+            - name: CircuitBreaker
+              args:
+                name: backendB
+                statusCodes: 503
+                fallbackUri: forward:/fallback/product
+      - id: ms-customer
+        uri: lb://MS-CUSTOMER
+        predicates:
+          - Path=/api/** 
+        filters:
+            - name: CircuitBreaker
+              args:
+                name: backendB
+                statusCodes: 503
+                fallbackUri: forward:/fallback/customer
+                
+      - id: ms-order
+        uri: lb://MS-ORDER
+        predicates:
+          - Path=/api/** 
+        filters:
+            - name: CircuitBreaker
+              args:
+                name: backendB
+                statusCodes: 503
+                fallbackUri: forward:/fallback/order
+         
+resilience4j.circuitbreaker:
+    configs:
+        default:
+            slidingWindowSize: 100
+            permittedNumberOfCallsInHalfOpenState: 5
+            waitDurationInOpenState: 10000
+            failureRateThreshold: 60
+            eventConsumerBufferSize: 10
+            registerHealthIndicator: true
+            record-exceptions:
+             - java.lang.Exception
+    instances:
+       backendA:
+            baseConfig: default
+            waitDurationInOpenState: 5000
+       backendB:
+            baseConfig: default
+            waitDurationInOpenState: 5000
+                       
+eureka:
+   client:
+      serviceUrl:
+         defaultZone: http://localhost:8761/eureka
+   instance:
+    prefer-ip-address: true
+    
+    
+management:
+  health:
+    circuitbreakers:
+      enabled: true
